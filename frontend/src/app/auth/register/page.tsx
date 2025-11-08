@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function RegisterPage() {
   const router = useRouter();

@@ -215,7 +215,7 @@ async function upsertLocation(input: InputLoc) {
 }
 
 async function main() {
-  const fileArg = process.argv[2] || "results/metadata_clean.jsonl";
+  const fileArg = process.argv[2] || path.join(__dirname, "metadata_clean.jsonl");
   const inputPath = path.resolve(process.cwd(), fileArg);
 
   if (!fs.existsSync(inputPath)) {

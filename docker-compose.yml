@@ -5,13 +5,14 @@ services:
     container_name: outdoor-spot-db
     env_file:
       - ./.env
-    ports:
-      - "5432:5432"
+#    ports:
+#      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - outdoor-spot
-
+    expose:
+      - "5432"
 
 
   # Backend (Node.js + Prisma)
@@ -25,8 +26,10 @@ services:
       - ./.env
     environment:
       - PORT=${PORT}
-    ports:
-      - "3001:3001"
+#    ports:
+#      - "3001:3001"
+    expose:
+      - "3001"
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
@@ -34,6 +37,7 @@ services:
       - postgres
     networks:
       - outdoor-spot
+      - web
 
 
 
@@ -48,18 +52,24 @@ services:
     environment:
       - PORT=${FRONTEND_PORT}
       - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-    ports:
-      - "3000:3000"
+#    ports:
+#      - "3000:3000"
+    expose:
+       - "3000"
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
       - frontend_next:/app/.next
     depends_on:
       - backend
+    network_mode: ""
     networks:
-      - outdoor-spot
+      outdoor-spot: {}
+      web:
+        aliases:
+          - outdoor-spot-frontend
     command: sh -c "npm install && npm run dev"
-
+    restart: unless-stopped
 
 volumes:
   postgres_data:
@@ -70,3 +80,5 @@ volumes:
 networks:
   outdoor-spot:
     driver: bridge
+  web:
+    external: true
