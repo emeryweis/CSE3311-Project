@@ -30,22 +30,8 @@ function weatherCodeLabel(code?: number): string {
   }
 }
 function weatherCodeEmoji(code?: number): string {
-  switch (code) {
-    case 0: return '☀️';
-    case 1: case 2: case 3: return '⛅';
-    case 45: case 48: return '🌫️';
-    case 51: case 53: case 55: return '🌦️';
-    case 56: case 57: return '🌧️❄️';
-    case 61: case 63: case 65: return '🌧️';
-    case 66: case 67: return '🌧️❄️';
-    case 71: case 73: case 75: return '❄️';
-    case 77: return '🌨️';
-    case 80: case 81: case 82: return '🌦️';
-    case 85: case 86: return '🌨️';
-    case 95: return '⛈️';
-    case 96: case 99: return '⛈️🧊';
-    default: return '—';
-  }
+  // Icons removed - return empty string
+  return '';
 }
 
 // Small internal helper
@@ -181,10 +167,10 @@ export default function WeatherForecast({
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-neutral-400">
-                    💧 {typeof d.precip === 'number' ? d.precip.toFixed(2) : '—'} in
+                    Precip: {typeof d.precip === 'number' ? d.precip.toFixed(2) : '—'} in
                   </div>
                   <div className="mt-1 text-xs text-neutral-400">
-                    🌬️ {Number.isFinite(d.windMax ?? NaN) ? Math.round(d.windMax!) : '—'} mph
+                    Wind: {Number.isFinite(d.windMax ?? NaN) ? Math.round(d.windMax!) : '—'} mph
                   </div>
                 </div>
               );

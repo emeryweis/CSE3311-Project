@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
 import NavBar from '@/app/components/NavBar';
@@ -193,8 +194,15 @@ export default function LocationPage() {
         setData(payload as LocationDetail);
         setError(null);
       } catch (e: any) {
-        console.error(e);
-        setError(e?.message || 'Failed to load location.');
+        console.error('Error loading location:', e);
+        // Handle specific error types
+        if (e.name === 'AbortError') {
+          setError('Request timed out. Please check your connection and try again.');
+        } else if (e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')) {
+          setError('Cannot connect to server. Please make sure the backend is running.');
+        } else {
+          setError(e?.message || 'Failed to load location.');
+        }
         setData(null);
       } finally {
         setLoading(false);
@@ -426,14 +434,24 @@ export default function LocationPage() {
           {/* Reviews (full-width) */}
           <section className="pb-12">
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900/80 backdrop-blur p-6">
-              <h3 className="font-semibold mb-3">Reviews</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Reviews</h3>
+                <Link
+                  href={`/reviews?locationId=${encodeURIComponent(data?.id || '')}`}
+                  className="text-sm text-emerald-400 hover:underline"
+                >
+                  View All Reviews
+                </Link>
+              </div>
               {data?.reviews && data.reviews.length > 0 ? (
                 <ul className="space-y-3">
-                  {data.reviews.map((r, i) => (
+                  {data.reviews.slice(0, 3).map((r, i) => (
                     <li key={r.id ?? i} className="rounded-xl border border-neutral-800 p-4">
                       <div className="flex items-center justify-between">
                         <div className="font-medium">{r.author || 'Anonymous'}</div>
-                        <div className="text-sm text-neutral-400">{r.rating ?? '—'}</div>
+                        <div className="text-sm text-emerald-400 font-semibold">
+                          {typeof r.rating === 'number' ? `${r.rating}/5` : r.rating ?? '—'}
+                        </div>
                       </div>
                       {r.comment && <p className="mt-2 text-neutral-300">{r.comment}</p>}
                       {r.createdAt && (
@@ -443,9 +461,27 @@ export default function LocationPage() {
                       )}
                     </li>
                   ))}
+                  {data.reviews.length > 3 && (
+                    <li className="text-center pt-2">
+                      <Link
+                        href={`/reviews?locationId=${encodeURIComponent(data.id)}`}
+                        className="text-emerald-400 hover:underline text-sm"
+                      >
+                        View {data.reviews.length - 3} more reviews
+                      </Link>
+                    </li>
+                  )}
                 </ul>
               ) : (
-                <p className="text-neutral-500">—</p>
+                <div className="space-y-3">
+                  <p className="text-neutral-500">No reviews yet.</p>
+                  <Link
+                    href={`/reviews?locationId=${encodeURIComponent(data?.id || '')}`}
+                    className="inline-block text-emerald-400 hover:underline text-sm"
+                  >
+                    Be the first to review this location
+                  </Link>
+                </div>
               )}
             </div>
           </section>

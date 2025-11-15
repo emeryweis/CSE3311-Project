@@ -313,7 +313,7 @@ async function main() {
           country: 'US',
           amenities: loc.amenities,
           costPerNight: loc.price,           // Prisma Decimal is fine with a number here
-          images: loc.images,
+          images: null, // Don't seed images - let External API fetch real images
           verified: true,
           isActive: loc.availability,
           rating: loc.rating ?? null,        // <-- set it!

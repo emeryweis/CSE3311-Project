@@ -37,14 +37,33 @@ export default function SearchPage() {
     const searchTerm = qOverride ?? query;
     if (!searchTerm.trim()) return;
 
+    if (!API_URL || API_URL === 'undefined') {
+      console.error('Backend URL not configured');
+      return;
+    }
+
     router.push(`/search?q=${encodeURIComponent(searchTerm)}`);
     setLoading(true);
     setSearched(true);
 
     try {
       const res = await fetch(
-        `${API_URL}/api/search/locations?q=${encodeURIComponent(searchTerm)}&page=${p}&limit=50`
+        `${API_URL}/api/search/locations?q=${encodeURIComponent(searchTerm)}&page=${p}&limit=50`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
       );
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON');
+      }
+
       const data = await res.json();
       if (data.success) {
         setResults(data.data || []);
@@ -54,7 +73,7 @@ export default function SearchPage() {
         setResults([]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Search error:', err);
       setResults([]);
     } finally {
       setLoading(false);

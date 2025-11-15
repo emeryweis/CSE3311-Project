@@ -9,6 +9,7 @@ import reviewsRouter from './routes/reviews';
 import searchRouter from './routes/search';
 import usersRouter from './routes/users';
 import authRouter from './routes/auth';
+import feedbackRouter from './routes/feedback';
 
 import { errorHandler } from './middleware/errorHandler';
 
@@ -27,6 +28,7 @@ app.use('/api/reviews', reviewsRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/feedback', feedbackRouter);
 
 // Root health check
 app.get('/', (_req, res) => {
@@ -37,7 +39,7 @@ app.get('/', (_req, res) => {
 app.use(errorHandler);
 
 
-const PORT = process.env['PORT'];
+const PORT = process.env['PORT'] || 3001;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });

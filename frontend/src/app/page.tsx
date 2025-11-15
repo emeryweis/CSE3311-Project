@@ -26,11 +26,15 @@ export default function Page() {
         }
 
         const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
         const res = await fetch(`${API_URL}/api/locations/recommended`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : controller.signal,
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
 
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);

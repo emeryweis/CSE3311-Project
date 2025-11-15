@@ -33,12 +33,22 @@ export default function LocationsPage() {
   useEffect(() => {
     (async () => {
       try {
-        if (!API_URL || API_URL === 'undefined') throw new Error('Backend URL not configured');
+        if (!API_URL || API_URL === 'undefined') {
+          setError('Backend URL not configured. Please check your environment variables.');
+          setLoading(false);
+          return;
+        }
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
         const res = await fetch(`${API_URL}/api/locations/all`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
 
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
@@ -51,8 +61,15 @@ export default function LocationsPage() {
         if (json?.success) setLocations(json.data || []);
         else throw new Error('API returned unsuccessful response');
       } catch (e: any) {
-        console.error(e);
-        setError(e?.message || 'Failed to load locations.');
+        console.error('Error loading locations:', e);
+        // Handle specific error types
+        if (e.name === 'AbortError') {
+          setError('Request timed out. Please check your connection and try again.');
+        } else if (e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')) {
+          setError('Cannot connect to server. Please make sure the backend is running.');
+        } else {
+          setError(e?.message || 'Failed to load locations.');
+        }
         setLocations([]);
       } finally {
         setLoading(false);

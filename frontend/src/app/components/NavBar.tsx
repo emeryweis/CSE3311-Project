@@ -61,6 +61,11 @@ export default function NavBar({ navQuery = '', setNavQuery, submitSearch }: Nav
                     About
                   </Link>
                 </li>
+                <li>
+                  <Link href="/feedback" className="transition hover:text-white">
+                    Feedback
+                  </Link>
+                </li>
               </ul>
             </nav>
 
