@@ -16,6 +16,7 @@ type AuthUser = {
   firstName: string | null;
   lastName: string | null;
   avatarUrl: string | null;
+  isAdmin?: boolean;
 };
 
 type AuthState = {

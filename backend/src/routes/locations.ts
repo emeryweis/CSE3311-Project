@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticate, optionalAuth } from '@/middleware/auth';
+import { requireAdmin, optionalAuth } from '@/middleware/auth';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -8,7 +8,7 @@ const router = Router();
 console.log("✅ locations router loaded");
 
 // ✅ Create a new location
-router.post('/', authenticate, async (req, res, next) => {
+router.post('/', requireAdmin, async (req, res, next) => {
   try {
     const newLocation = await prisma.location.create({ data: req.body });
     return res.status(201).json({ success: true, data: newLocation });

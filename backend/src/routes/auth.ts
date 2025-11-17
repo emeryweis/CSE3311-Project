@@ -69,7 +69,7 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, isAdmin: user.isAdmin },  // Include isAdmin
       process.env['JWT_SECRET'] as string,
       { expiresIn: '7d' }
     );
@@ -84,6 +84,7 @@ router.post('/login', async (req, res) => {
           firstName: user.firstName,
           lastName: user.lastName,
           avatarUrl: user.avatarUrl,
+          isAdmin: user.isAdmin,  // Include in response
         },
         token,
       },

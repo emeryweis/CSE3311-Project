@@ -10,6 +10,7 @@ import path from "node:path";
 import readline from "node:readline";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { loadEnv } from "../src/utils/loadEnv";
+import bcrypt from "bcryptjs";
 
 loadEnv();
 
@@ -215,7 +216,43 @@ async function upsertLocation(input: InputLoc) {
   }
 }
 
+async function seedAdminUser() {
+  const adminEmail = "admin@example.com";
+  const adminPassword = "admin123"; 
+  
+  // Check if admin already exists
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
+
+  if (existingAdmin) {
+    console.log(`Admin user already exists: ${adminEmail}`);
+    return existingAdmin;
+  }
+
+  // Hash the password
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+  // Create admin user
+  const admin = await prisma.user.create({
+    data: {
+      email: adminEmail,
+      username: "admin",
+      passwordHash,
+      firstName: "Admin",
+      lastName: "User",
+      isAdmin: true, 
+    },
+  });
+
+  console.log(`Created admin user: ${adminEmail}`);
+  return admin;
+}
+
 async function main() {
+  // get admin user first
+  await seedAdminUser();
+
   const fileArg = process.argv[2] || path.join(__dirname, "metadata_clean.jsonl");
   const inputPath = path.resolve(process.cwd(), fileArg);
 
