@@ -9,7 +9,7 @@ const router = Router();
 router.get('/', optionalAuth, async (_req, res, next) => {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, email: true, username: true, createdAt: true },
+      select: { id: true, email: true, username: true, createdAt: true, admin: true },
     });
     res.json({ success: true, data: users });
   } catch (error) {
@@ -22,7 +22,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params['id'] },
-      select: { id: true, email: true, username: true, createdAt: true },
+      select: { id: true, email: true, username: true, createdAt: true, admin: true },
     });
 
     if (!user) {
@@ -41,7 +41,7 @@ router.put('/me', authenticate, async (req: any, res, next) => {
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: req.body,
-      select: { id: true, email: true, username: true, createdAt: true },
+      select: { id: true, email: true, username: true, createdAt: true, admin: true },
     });
 
     res.json({ success: true, data: updatedUser });

@@ -16,6 +16,7 @@ model User {
   lastName     String?
   avatarUrl    String?
   bio          String?
+  admin        Boolean    @default(false)
   createdAt    DateTime   @default(now())
   reviews      Review[]
   locations    Location[]
