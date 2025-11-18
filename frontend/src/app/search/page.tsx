@@ -150,7 +150,7 @@ export default function SearchPage() {
                 {results.map((loc) => (
                   <article
                     key={loc.id}
-                    className="relative group flex items-center rounded-2xl border border-gray-800 bg-gray-800/90 transition hover:border-emerald-600 overflow-hidden"
+                    className="relative group flex items-center gap-6 rounded-2xl border border-gray-800 bg-gray-800/90 transition hover:border-emerald-600 overflow-hidden px-3"
                   >
                     {/* Make the whole card clickable */}
                     <Link
@@ -159,7 +159,7 @@ export default function SearchPage() {
                       aria-label={`View details for ${loc.name}`}
                     />
 
-                    <div className="h-16 w-16 flex-shrink-0 relative overflow-hidden">
+                    <div className="relative h-16 w-32 flex-shrink-0 overflow-hidden rounded-xl">
                       <img
                         src={loc.img || 'https://via.placeholder.com/150'}
                         alt={loc.name}
@@ -170,7 +170,7 @@ export default function SearchPage() {
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                     </div>
 
-                    <div className="ml-4 mr-4 my-3 flex-1">
+                    <div className="my-3 flex-1 pr-2">
                       <h2 className="text-lg font-semibold">{loc.name}</h2>
                       <p className="text-sm text-gray-300 truncate">
                         {loc.description}
