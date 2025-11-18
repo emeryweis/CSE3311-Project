@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
-import dotenv from 'dotenv';
+import { loadEnv } from '@/utils/loadEnv';
 
 import locationsRouter from './routes/locations';
 import reviewsRouter from './routes/reviews';
@@ -13,7 +13,7 @@ import feedbackRouter from './routes/feedback';
 
 import { errorHandler } from './middleware/errorHandler';
 
-dotenv.config();
+loadEnv();
 
 const app = express();
 

@@ -140,7 +140,7 @@ export default function Page() {
                 </div>
                 <div className="p-5">
                   <h3 className="text-lg font-semibold">{spot.name}</h3>
-                  <p className="mt-2 text-sm text-neutral-300">{spot.blurb}</p>
+                  <p className="mt-2 text-sm text-neutral-300 line-clamp-5">{spot.blurb}</p>
                   <div className="mt-4 flex items-center justify-between text-sm text-neutral-300">
                     <div>
                       <span className="text-yellow-400">★★★★★</span>

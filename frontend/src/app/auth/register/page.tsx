@@ -9,7 +9,7 @@ import Footer from '@/app/components/Footer';
 import PageShell from '@/app/components/PageShell';
 import Backplate from '@/app/components/Backplate';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function RegisterPage() {
   const router = useRouter();

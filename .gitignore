@@ -21,6 +21,7 @@ dist/
 logs
 *.log
 core
+*.lock
 
 # Runtime data
 pids

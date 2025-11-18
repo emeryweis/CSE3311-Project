@@ -236,14 +236,18 @@ export default function LocationPage() {
         <div className="flex min-h-[calc(100vh-var(--header-h,64px))] flex-col">
           {/* Title & intro */}
           <section className="pt-2 sm:pt-4 pb-10">
-            <div className="max-w-3xl">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight">
-                {loading ? 'Loading…' : data?.name ?? '—'}
-              </h1>
-              <p className="mt-3 text-lg text-neutral-200">
-                {loading ? '' : data?.description || '—'}
-              </p>
-              <div className="mt-2 text-sm text-neutral-400">
+            <div className="max-w-3xl space-y-3">
+              <div className="w-full rounded-3xl bg-neutral-950/80 px-6 py-4 backdrop-blur-sm shadow-lg ring-1 ring-white/5">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight">
+                  {loading ? 'Loading…' : data?.name ?? '—'}
+                </h1>
+              </div>
+              <div className="w-full rounded-3xl bg-neutral-950/70 px-6 py-4 backdrop-blur-sm shadow-md ring-1 ring-white/5">
+                <p className="text-lg text-neutral-200">
+                  {loading ? '' : data?.description || '—'}
+                </p>
+              </div>
+              <div className="text-sm text-neutral-300">
                 {loading || !data ? '' : [data.city, data.state, data.country].filter(isPresent).join(', ')}
               </div>
             </div>

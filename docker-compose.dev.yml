@@ -1,35 +1,28 @@
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: outdoor-spot-db
+    container_name: outdoor-spot-db-dev
     env_file:
       - ./.env
-#    ports:
-#      - "5432:5432"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - outdoor-spot
-    expose:
-      - "5432"
 
-
-  # Backend (Node.js + Prisma)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: outdoor-spot-backend
+    container_name: outdoor-spot-backend-dev
     working_dir: /app
     env_file:
       - ./.env
     environment:
-      - PORT=${PORT}
-#    ports:
-#      - "3001:3001"
-    expose:
-      - "3001"
+      - PORT=${PORT:-3001}
+    ports:
+      - "${PORT:-3001}:3001"
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
@@ -37,37 +30,26 @@ services:
       - postgres
     networks:
       - outdoor-spot
-      - web
 
-
-
-
-  # Frontend (Next.js)
   frontend:
     image: node:20-alpine
-    container_name: outdoor-spot-frontend
+    container_name: outdoor-spot-frontend-dev
     working_dir: /app
     env_file:
       - ./.env
     environment:
-      - PORT=${FRONTEND_PORT}
+      - PORT=${FRONTEND_PORT:-3000}
       - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-#    ports:
-#      - "3000:3000"
-    expose:
-       - "3000"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
       - frontend_next:/app/.next
     depends_on:
       - backend
-    network_mode: ""
     networks:
-      outdoor-spot: {}
-      web:
-        aliases:
-          - outdoor-spot-frontend
+      - outdoor-spot
     command: sh -c "npm install && npm run dev"
     restart: unless-stopped
 
@@ -80,5 +62,3 @@ volumes:
 networks:
   outdoor-spot:
     driver: bridge
-  web:
-    external: true

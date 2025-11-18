@@ -1,71 +1,64 @@
-# OutdoorSpot - Camping & Outdoor Activities Finder
+# OutdoorSpot - UTA Hiking & Camping Guide
 
-A comprehensive web application that helps users discover camping spots and outdoor activities including hiking, mountain biking, kayaking, and photography opportunities.
+A web application that helps University of Texas at Arlington students discover nearby hiking trails and camping spots across the Dallas–Fort Worth area.
 
-##Project Overview
+## Project Overview
 
-OutdoorSpot connects outdoor enthusiasts with the perfect camping and activity locations based on their preferences, including distance, terrain, climate, events, and cost considerations.
+OutdoorSpot curates local outdoor experiences tailored for UTA students, highlighting drive times from campus, amenity details, budget considerations, and seasonal tips for safe adventures.
 
 ## Key Features
 
 ### Core Functionality
-- **Location Discovery**: Find camping spots and outdoor activity locations
-- **Multi-Activity Support**: Hiking, Mountain Biking, Kayaking, Photography
-- **Advanced Filtering**: Distance, terrain, climate, cost, amenities
-- **Event Integration**: Local outdoor events and activities
-- **User Reviews & Ratings**: Community-driven recommendations
-- **Interactive Maps**: Visual location browsing with detailed information
+- **Trail & Campground Discovery**: Explore curated hiking trails and campgrounds around DFW
+- **UTA-Centric Insights**: Highlight drive times and transportation options from campus
+- **Advanced Filtering**: Filter by distance, terrain, amenities, fees, and accessibility
+- **Seasonal Guidance**: Weather preparation tips specific to North Texas conditions
+- **Student Reviews & Ratings**: Crowd-sourced recommendations and trip notes
+- **Interactive Maps**: Browse results visually with map markers and detail overlays
 
 ### Filtering & Search
-- **Distance-based**: Filter by proximity to user location or specific areas
-- **Terrain Types**: Mountain, forest, desert, coastal, lake, river
-- **Climate Considerations**: Weather patterns, seasonal availability
-- **Cost Ranges**: Free, budget, moderate, premium options
-- **Activity-specific**: Difficulty levels, equipment requirements
-- **Amenities**: Restrooms, water, parking, pet-friendly, etc.
+- **Distance-based**: Filter by drive time from UTA or a custom location
+- **Terrain Types**: Prairie, forest, lakeside, and river trails common to DFW
+- **Seasonal Considerations**: Check trail conditions by season and weather outlook
+- **Budget Options**: Discover free parks, day-use passes, or overnight permit costs
+- **Difficulty Levels**: Match hike length and elevation gain to student skill levels
+- **Amenities**: Restrooms, water access, camping hookups, pet-friendly sites, and more
 
 ### User Experience
-- **Responsive Design**: Works on desktop, tablet, and mobile
-- **Interactive Maps**: Google Maps integration with custom markers
-- **Detailed Profiles**: Comprehensive location information
-- **Save Favorites**: Personal collection of preferred spots
-- **Trip Planning**: Multi-day itinerary planning
-- **Social Features**: Reviews, photos, recommendations
+- **Responsive Design**: Optimized for mobile, tablet, and desktop use
+- **Interactive Maps**: Leaflet-powered map with custom markers and tooltips
+- **Detailed Profiles**: Safety notes, packing checklists, and amenity highlights
+- **Favorite Spots**: Save and revisit preferred trails or campsites
+- **Trip Preparation**: Shareable packing lists and quick-start guides for student groups
+- **Community Features**: Reviews, photos, and trail updates from fellow Mavericks
 
 ## Technology Stack
 
 ### Frontend
-- **React 18** - Modern UI framework with hooks and functional components
-- **TypeScript** - Type-safe development
-- **Next.js 14** - Full-stack React framework with SSR/SSG
-- **Tailwind CSS** - Utility-first CSS framework
-- **Headless UI** - Accessible component primitives
-- **React Query** - Server state management and caching
-- **React Hook Form** - Form handling and validation
+- **Next.js 15** – Full-stack React framework with file-based routing
+- **React 19** – Modern UI with concurrent rendering capabilities
+- **TypeScript** – Type-safe components and utilities
+- **Tailwind CSS 4** – Utility-first styling
+- **Leaflet & React Leaflet** – Interactive maps and geospatial visualization
 
 ### Backend
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web application framework
-- **PostgreSQL** - Primary database for structured data
-- **Prisma** - Type-safe database ORM
-- **Redis** - Caching and session management
-- **JWT** - Authentication tokens
+- **Node.js 18+** – JavaScript runtime
+- **Express.js** – RESTful API server
+- **PostgreSQL** – Primary relational data store
+- **Prisma** – Type-safe ORM and schema migrations
+- **JWT Authentication** – Secure session management
 
 ### External Services
-- **Google Maps API** - Interactive mapping and geolocation
-- **Weather API** - Climate and weather information
-- **Stripe** - Payment processing for premium features
-- **Cloudinary** - Image upload and management
-- **SendGrid** - Email notifications
+- **OpenStreetMap Tiles** – Map baselayers rendered via Leaflet
+- **National Weather Service API** – Localized weather and safety alerts
+- **Recreation.gov & Texas Parks APIs** – Official camping and permit data
 
 ### Development & Deployment
-- **Docker** - Containerization
-- **GitHub Actions** - CI/CD pipeline
-- **Vercel** - Frontend deployment
-- **Railway/Render** - Backend deployment
-- **PlanetScale** - Database hosting
+- **Docker & Docker Compose** – Local development and deployment parity
+- **GitHub** – Source control and issue tracking
+- **Render** – Managed hosting for production services
 
-##Project Structure
+## Project Structure
 
 ```
 outdoor-spot/
@@ -90,7 +83,8 @@ outdoor-spot/
 │   ├── prisma/             # Database schema and migrations
 │   └── package.json
 ├── shared/                  # Shared types and utilities
-├── docker-compose.yml      # Development environment
+├── docker-compose.yml      # Production-oriented compose stack
+├── docker-compose.dev.yml  # Local development compose stack
 ├── .github/                # GitHub Actions workflows
 └── README.md
 ```
@@ -98,53 +92,50 @@ outdoor-spot/
 ## Database Schema
 
 ### Core Entities
-- **Users**: Authentication and profile information
-- **Locations**: Camping spots and activity areas
-- **Activities**: Hiking, biking, kayaking, photography spots
-- **Reviews**: User ratings and comments
-- **Events**: Local outdoor events and meetups
-- **Bookmarks**: User's saved locations
-- **Amenities**: Available facilities and services
+- **Users**: Authentication and student profile information
+- **Locations**: Hiking trails, state parks, and campgrounds near DFW
+- **Amenities**: Water, restrooms, electric hookups, and accessibility metadata
+- **Permits & Fees**: Pass requirements and reservation availability
+- **Reviews**: Student-submitted ratings and trip notes
+- **Safety Alerts**: Weather, burn bans, and trail closures
 
 ### Key Relationships
-- Users can review multiple locations
-- Locations can have multiple activities
-- Events are associated with specific locations
-- Users can bookmark multiple locations
+- Users can review multiple locations and share safety updates
+- Locations reference relevant amenities and permit requirements
+- Safety alerts and seasonal tips are tied to specific locations
+- Users can bookmark locations for quick trip planning
 
 ## Implementation Roadmap
 
 ### Phase 1: Foundation (Weeks 1-2)
--  Set up development environment
--  Create basic project structure
--  Set up database schema
--  Implement user authentication
--  Basic UI components and layout
+-  Establish development environment and repository standards
+-  Scaffold Next.js frontend and Express.js backend services
+-  Define initial Prisma schema and seed DFW trail data
+-  Implement authentication and student profile onboarding
+-  Build core layout, navigation, and shared UI components
 
 ### Phase 2: Core Features (Weeks 3-4)
--  Location search and filtering
--  Interactive map integration
--  Location detail pages
--  Basic user profiles
+-  Implement hiking and camping search with filters
+-  Integrate Leaflet maps for spatial browsing
+-  Build location detail pages with amenity and fee information
+-  Launch user profile settings and favorites
 
-### Phase 3: Enhanced Features (Weeks 5-6)
--  Advanced filtering options
--  Review and rating system
--  Image upload and management
--  Event integration
+### Phase 3: Enhanced Features (Weeks 5-6) **(Current Phase)**
+-  Expand filtering to include seasonal tips and safety alerts
+-  Launch student review and rating workflows
+-  Surface recommended gear lists and packing checklists
+-  Automate weather and burn ban notifications per location
 
 ### Phase 4: Polish & Launch (Weeks 7-8)
--  Performance optimization
--  Mobile responsiveness
--  Testing and bug fixes
--  Deployment and monitoring
+-  Performance and accessibility optimization
+-  Comprehensive testing and QA
+-  Content review and data verification
+-  Production deployment and monitoring setup
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-- Redis 6+
+- Docker (with the Compose plugin providing the `docker compose` CLI)
 - Git
 
 ### Installation
@@ -155,49 +146,60 @@ outdoor-spot/
    cd outdoor-spot
    ```
 
-2. **Set up environment variables**
+2. **Copy environment variables**
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
+   # Update credentials such as database URLs and API keys as needed
    ```
 
-3. **Install dependencies**
-   ```bash
-   # Install frontend dependencies
-   cd frontend && npm install
+3. **(Optional) Generate local-only overrides**
 
-   # Install backend dependencies
-   cd ../backend && npm install
+   To point the stack at a LAN-accessible backend/frontend while keeping the production values intact, use the helper script:
+
+   ```bash
+   npm run setup:dev-env
    ```
 
-4. **Set up the database**
+   The script creates `.env.local` at the repository root for the backend and `frontend/.env.local` for the Next.js app. These files shadow the production URLs only on your machine, enabling local testing without modifying `.env`.
+
+4. **Build and start with Docker**
+
+   Production deployments still rely on the existing `web` reverse-proxy network, so the
+   base compose file keeps that external dependency intact. For local development use the
+   dedicated compose file that omits the external network and publishes the container
+   ports directly to your machine:
+
    ```bash
-   cd backend
-   npx prisma migrate dev
-   npx prisma db seed
+   npm run docker:dev
    ```
 
-5. **Start development servers**
-   ```bash
-   # Terminal 1: Backend
-   cd backend && npm run dev
+   The helper automatically rebuilds images before starting the stack so your local
+   changes are picked up.
 
-   # Terminal 2: Frontend
-   cd frontend && npm run dev
+   If you're deploying alongside the production proxy network, continue using the
+   original command:
+
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
+
+4. **View application logs (optional)**
+   ```bash
+   docker compose logs -f
    ```
 
 ## Data Sources
 
 ### Initial Data Collection
-- **Public APIs**: Recreation.gov, National Park Service
-- **Government Data**: US Forest Service, BLM data
-- **Community Contributions**: User-generated content
-- **Web Scraping**: Popular camping websites (with permission)
-- **Manual Curation**: High-quality verified locations
+- **Recreation.gov & Texas Parks and Wildlife**: Official campground data and permits
+- **City of Arlington & DFW Parks Departments**: Local trail and park amenities
+- **Community Contributions**: Student-submitted trail notes and campsite reviews
+- **Manual Curation**: Faculty and outdoor club recommendations
 
 ### Ongoing Data Management
-- **User Reviews**: Community-driven quality control
-- **Moderation System**: Content review and approval
+- **User Reviews**: Student feedback ensures current trail and campsite conditions
+- **Moderation System**: Admin review of safety notes, alerts, and shared itineraries
 - **Data Validation**: Automated and manual verification
 - **Regular Updates**: Seasonal information and availability
 

@@ -1,358 +1,277 @@
-import { PrismaClient } from '@prisma/client';
+/* seed_from_jsonl.ts
+   Stream a JSONL file and upsert into Prisma `Location`.
+
+   Usage:
+     npx ts-node seed_from_jsonl.ts results/metadata_clean.jsonl
+*/
+
+import fs from "node:fs";
+import path from "node:path";
+import readline from "node:readline";
+import { PrismaClient, Prisma } from "@prisma/client";
+import { loadEnv } from "../src/utils/loadEnv";
+
+loadEnv();
 
 const prisma = new PrismaClient();
 
-async function main() {
-  // Create a dummy user for seeding reviews (to handle ratings)
-  const dummyUser = await prisma.user.upsert({
-    where: { email: 'user@example.com' },
-    update: {},
-    create: {
-      email: 'user@example.com',
-      username: 'seeduser',
-      passwordHash: 'dummyhash', // Note: In production, use a proper hash
-      firstName: 'Seed',
-      lastName: 'User',
-    },
-  });
+type InputLoc = {
+  name: string;
+  description?: string | null;
+  locationType: string;
+  latitude: number;
+  longitude: number;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  elevation?: number | null;
+  terrainType?: string | null;
+  climateZone?: string | null;
+  amenities?: any | null;              // JSON
+  costPerNight?: number | string | null;
+  maxCapacity?: number | null;
+  petFriendly?: boolean | null;
+  reservationRequired?: boolean | null;
+  seasonStart?: string | null;
+  seasonEnd?: string | null;
+  difficultyLevel?: number | null;
+  safetyNotes?: string | null;
+  regulations?: string | null;
+  contactInfo?: Record<string, any> | null; // JSON
+  websiteUrl?: string | null;
+  images?: any[] | null;               // JSON
+  verified?: boolean | null;
+  isActive?: boolean | null;
+  rating?: number | null;
+  createdById?: string | null;
+};
 
-  // Hardcoded mock locations data (exactly as provided)
-  const mockLocations = [
-    {
-      name: 'Yosemite National Park',
-      description: 'Iconic granite cliffs, waterfalls, and ancient sequoias await you in this world-renowned park.',
-      location: 'California',
-      coordinates: { lat: 37.8651, lng: -119.5383 },
-      activities: ['Camping', 'Hiking', 'Photography', 'Rock Climbing'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Visitor Center'],
-      isActive: true,
-      verified: true,
-      rating: 4.9,
-      price: 35,
-      images: [
-        '/images/photo-1441974231531-c6227db76b6e.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Glacier National Park',
-      description: 'Pristine wilderness with over 700 miles of trails and stunning alpine scenery.',
-      location: 'Montana',
-      coordinates: { lat: 48.7596, lng: -113.7870 },
-      activities: ['Camping', 'Hiking', 'Wildlife Viewing', 'Photography'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Lodge'],
-      isActive: true,
-      verified: true,
-      rating: 4.8,
-      price: 30,
-      images: [
-        '/images/photo-1441974231531-c6227db76b6e.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Grand Canyon National Park',
-      description: 'One of the world\'s most spectacular natural wonders with incredible hiking opportunities.',
-      location: 'Arizona',
-      coordinates: { lat: 36.1069, lng: -112.1129 },
-      activities: ['Camping', 'Hiking', 'Photography', 'River Rafting'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Visitor Center'],
-      isActive: true,
-      verified: true,
-      rating: 4.9,
-      price: 25,
-      images: [
-        '/images/photo-1474044159687-1ee9f3a51722.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1441974231531-c6227db76b6e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Rocky Mountain National Park',
-      description: 'High-altitude adventures with stunning mountain views and diverse wildlife.',
-      location: 'Colorado',
-      coordinates: { lat: 40.3428, lng: -105.6836 },
-      activities: ['Camping', 'Hiking', 'Mountain Biking', 'Climbing'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Visitor Center'],
-      isActive: true,
-      verified: true,
-      rating: 4.7,
-      price: 28,
-      images: [
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg',
-        '/images/photo-1441974231531-c6227db76b6e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Lake Tahoe',
-      description: 'The largest alpine lake in North America, known for its clarity and surrounding mountains.',
-      location: 'California',
-      coordinates: { lat: 39.0968, lng: -120.0323 },
-      activities: ['Camping', 'Hiking', 'Boating', 'Skiing', 'Water Sports'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Lodge', 'Equipment Rentals'],
-      isActive: true,
-      verified: true,
-      rating: 4.8,
-      price: 0,
-      images: [
-        '/images/photo-1441974231531-c6227db76b6e.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Zion National Park',
-      description: 'Massive sandstone cliffs of cream, pink, and red that soar into a brilliant blue sky.',
-      location: 'Utah',
-      coordinates: { lat: 37.2978, lng: -113.0288 },
-      activities: ['Camping', 'Hiking', 'Canyoneering', 'Photography'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Visitor Center'],
-      isActive: true,
-      verified: true,
-      rating: 4.7,
-      price: 35,
-      images: [
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg',
-        '/images/photo-1441974231531-c6227db76b6e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Yellowstone National Park',
-      description: 'America\'s first national park featuring geysers, hot springs, and abundant wildlife.',
-      location: 'Wyoming',
-      coordinates: { lat: 44.4280, lng: -110.5885 },
-      activities: ['Camping', 'Hiking', 'Wildlife Viewing'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Visitor Center'],
-      isActive: true,
-      verified: true,
-      rating: 4.9,
-      price: 30,
-      images: [
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg',
-        '/images/photo-1441974231531-c6227db76b6e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Acadia National Park',
-      description: 'Protects the natural beauty of the highest rocky headlands along the Atlantic coastline of the United States, an abundance of habitats, and a rich cultural heritage.',
-      location: 'Maine',
-      coordinates: { lat: 44.338974, lng: -68.27343 },
-      activities: ['Hiking', 'Driving', 'Biking'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Visitor Center'],
-      isActive: true,
-      verified: true,
-      rating: 4.8,
-      price: 35,
-      images: [
-        '/images/photo-1474044159687-1ee9f3a51722.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1441974231531-c6227db76b6e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Dinosaur Valley State Park',
-      description: 'Allows visitors to walk in dinosaur footprints in the bed of the Paluxy River, a site where dinosaurs once roamed, located a short drive from Fort Worth.',
-      location: 'Texas',
-      coordinates: { lat: 32.246194, lng: -97.813375 },
-      activities: ['Hiking', 'Swimming', 'Fishing', 'Camping', 'Mountain biking'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Park store'],
-      isActive: true,
-      verified: true,
-      rating: 4.3,
-      price: 8,
-      images: [
-        '/images/photo-1441974231531-c6227db76b6e.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Cedar Hill State Park',
-      description: 'Offers a relaxing escape with activities like lake visits, exploring old Texas farms, and hiking through rugged limestone hills and rare prairie pockets, located just a short drive from the DFW Metroplex.',
-      location: 'Texas',
-      coordinates: { lat: 32.621721, lng: -96.979087 },
-      activities: ['Hiking', 'Biking', 'Fishing', 'Camping', 'Swimming'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Boat Ramp', 'Playground'],
-      isActive: true,
-      verified: true,
-      rating: 4.0,
-      price: 7,
-      images: [
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg',
-        '/images/photo-1441974231531-c6227db76b6e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Lake Mineral Wells State Park',
-      description: 'Sits in the heart of cattle country, near what was once a popular health resort, offering a lake, a rock climbing area, and miles of trails, located just 45 minutes west of Fort Worth.',
-      location: 'Texas',
-      coordinates: { lat: 32.812655, lng: -98.043368 },
-      activities: ['Hiking', 'Rock Climbing', 'Boating', 'Camping', 'Fishing'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Boat Ramp', 'Park Store'],
-      isActive: true,
-      verified: true,
-      rating: 4.0,
-      price: 7,
-      images: [
-        '/images/photo-1474044159687-1ee9f3a51722.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Cleburne State Park',
-      description: 'Offers a peaceful getaway with a spring-fed lake, trails through the forest, and quiet campsites, located 30 minutes southwest of Fort Worth on the northern edge of the Hill Country.',
-      location: 'Texas',
-      coordinates: { lat: 32.252365, lng: -97.549617 },
-      activities: ['Hiking', 'Fishing', 'Boating', 'Camping', 'Swimming'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Boat Ramp', 'Park Store'],
-      isActive: true,
-      verified: true,
-      rating: 4.2,
-      price: 6,
-      images: [
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Fort Worth Nature Center',
-      description: 'Enhances the quality of life by enrolling and educating the community in the preservation and protection of natural areas.',
-      location: 'Texas',
-      coordinates: { lat: 32.8442, lng: -97.4757 },
-      activities: ['Hiking', 'Wildlife Viewing', 'Photography'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Interpretive Center'],
-      isActive: true,
-      verified: true,
-      rating: 4.5,
-      price: 6,
-      images: [
-        '/images/photo-1441974231531-c6227db76b6e.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Eagle Mountain Lake',
-      description: 'Fort Worth’s premiere daycation spot, ideal for relaxing, swimming, and creating summer memories, with a beautiful beach at its southern point.',
-      location: 'Texas',
-      coordinates: { lat: 32.8926, lng: -97.4931 },
-      activities: ['Swimming', 'Fishing', 'Boating'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Picnic Pavilions'],
-      isActive: true,
-      verified: true,
-      rating: 4.5,
-      price: 0,
-      images: [
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg'
-      ],
-      availability: true
-    },
-    {
-      name: 'Possum Kingdom State Park',
-      description: 'Located in the rugged canyon country of the Brazos River Valley, features clear, blue water and striking scenery at Lake Possum Kingdom, ideal for family outings and outdoor activities.',
-      location: 'Texas',
-      coordinates: { lat: 32.8736, lng: -98.5593 },
-      activities: ['Swimming', 'Boating', 'Fishing', 'Hiking', 'Camping'],
-      amenities: ['Restrooms', 'Water', 'Parking', 'Boat Launch', 'Park Store'],
-      isActive: true,
-      verified: true,
-      rating: 4.5,
-      price: 4,
-      images: [
-        '/images/photo-1474044159687-1ee9f3a51722.jpg',
-        '/images/photo-1506905925346-21bda4d32df4.jpg',
-        '/images/photo-1519904981063-b0cf448d479e.jpg'
-      ],
-      availability: true
-    },
-  ];
+function normStr(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s.length ? s : null;
+}
 
-  for (const loc of mockLocations) {
-    // Determine locationType based on name
-    let locationType = 'park';
-    if (loc.name.toLowerCase().includes('national park')) {
-      locationType = 'national_park';
-    } else if (loc.name.toLowerCase().includes('lake')) {
-      locationType = 'lake';
-    }
+function asDecimal(v: unknown): Prisma.Decimal | null {
+  if (v === null || v === undefined || v === "") return null;
+  const s = typeof v === "string" ? v.trim() : String(v);
+  if (!s || isNaN(Number(s))) return null;
+  return new Prisma.Decimal(s);
+}
 
-    // Create or skip location
-    let location = await prisma.location.findFirst({ where: { name: loc.name } });
-    if (!location) {
-      location = await prisma.location.create({
-        data: {
-          name: loc.name,
-          description: loc.description,
-          locationType,
-          latitude: loc.coordinates.lat,
-          longitude: loc.coordinates.lng,
-          state: loc.location,
-          country: 'US',
-          amenities: loc.amenities,
-          costPerNight: loc.price,           // Prisma Decimal is fine with a number here
-          images: null, // Don't seed images - let External API fetch real images
-          verified: true,
-          isActive: loc.availability,
-          rating: loc.rating ?? null,        // <-- set it!
-        },
-      });
-    } else if (location.rating == null && loc.rating != null) {
-      // keep seed idempotent but fill in missing rating
-      await prisma.location.update({
-        where: { id: location.id },
-        data: { rating: loc.rating },
-      });
-    }
+function asDate(v: unknown): Date | null {
+  if (!v) return null;
+  if (typeof v === "string") {
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return v instanceof Date ? v : null;
+}
 
-    
+function roundCoord(n: number | null | undefined): number | null {
+  if (typeof n !== "number" || !isFinite(n)) return null;
+  return Math.round(n * 1000) / 1000; // ~110m precision
+}
 
-    // Seed a review to capture the rating (since rating isn't directly on Location)
-    const existingReview = await prisma.review.findFirst({
-      where: {
-        userId: dummyUser.id,
-        locationId: location.id,
-      },
-    });
+function cleanUndefined<T extends Record<string, any>>(obj: T): T {
+  for (const k of Object.keys(obj)) {
+    if (obj[k] === undefined) delete obj[k];
+  }
+  return obj;
+}
 
-    if (!existingReview) {
-      await prisma.review.create({
-        data: {
-          userId: dummyUser.id,
-          locationId: location.id,
-          rating: Math.round(loc.rating), // Round to nearest int (1-5)
-          content: 'Seeded review to match mock rating',
-        },
-      });
+// Only fill DB null/empty fields with incoming values (no overwrites)
+function mergePreferExisting<T extends Record<string, any>>(
+  existing: T,
+  incoming: T
+): T {
+  const out: T = { ...existing };
+  for (const [k, incomingVal] of Object.entries(incoming)) {
+    const currentVal = (existing as any)[k];
+    const isNullish =
+      currentVal === null ||
+      currentVal === undefined ||
+      (typeof currentVal === "string" && currentVal.trim() === "");
+    if (isNullish && incomingVal !== undefined) {
+      (out as any)[k] = incomingVal;
     }
   }
+  return out;
+}
+
+async function upsertLocation(input: InputLoc) {
+  // Map nullable JSONs:
+  // - undefined -> omit key
+  // - null      -> Prisma.DbNull (SQL NULL)
+  // - value     -> value (as InputJsonValue)
+  const amenitiesMapped =
+    input.amenities === undefined
+      ? undefined
+      : input.amenities === null
+      ? Prisma.DbNull
+      : (input.amenities as Prisma.InputJsonValue);
+
+  const contactInfoMapped =
+    input.contactInfo === undefined
+      ? undefined
+      : input.contactInfo === null
+      ? Prisma.DbNull
+      : (input.contactInfo as Prisma.InputJsonValue);
+
+  const imagesMapped =
+    input.images === undefined
+      ? undefined
+      : input.images === null
+      ? Prisma.DbNull
+      : (input.images as Prisma.InputJsonValue);
+
+  const rawPayload: any = {
+    name: input.name,
+    description: normStr(input.description),
+    locationType: input.locationType || "Facility",
+    latitude: input.latitude,
+    longitude: input.longitude,
+    address: normStr(input.address),
+    city: normStr(input.city),
+    state: normStr(input.state),
+    country: normStr(input.country) || "US",
+    elevation: input.elevation ?? null,
+    terrainType: normStr(input.terrainType),
+    climateZone: normStr(input.climateZone),
+
+    amenities: amenitiesMapped,
+    contactInfo: contactInfoMapped,
+    images: imagesMapped,
+
+    costPerNight: asDecimal(input.costPerNight),
+    maxCapacity: typeof input.maxCapacity === "number" ? input.maxCapacity : null,
+    petFriendly:
+      input.petFriendly === null || input.petFriendly === undefined
+        ? false
+        : !!input.petFriendly,
+    reservationRequired:
+      input.reservationRequired === null || input.reservationRequired === undefined
+        ? false
+        : !!input.reservationRequired,
+    seasonStart: asDate(input.seasonStart),
+    seasonEnd: asDate(input.seasonEnd),
+    difficultyLevel:
+      typeof input.difficultyLevel === "number" ? input.difficultyLevel : null,
+    safetyNotes: normStr(input.safetyNotes),
+    regulations: normStr(input.regulations),
+    websiteUrl: normStr(input.websiteUrl),
+    verified: input.verified ?? true,
+    isActive: input.isActive ?? true,
+    rating: typeof input.rating === "number" ? input.rating : null,
+    createdById: input.createdById ?? null, // must be null, not undefined
+  };
+
+  const payload = cleanUndefined(
+    rawPayload
+  ) as Prisma.LocationUncheckedCreateInput;
+
+  // Find existing by websiteUrl OR name+rounded coords
+  let existing: any = null;
+
+  if (payload.websiteUrl) {
+    existing = await prisma.location.findFirst({
+      where: { websiteUrl: payload.websiteUrl },
+    });
+  }
+
+  if (!existing) {
+    const latKey = roundCoord(payload.latitude);
+    const lonKey = roundCoord(payload.longitude);
+    existing = await prisma.location.findFirst({
+      where: {
+        name: payload.name,
+        latitude: {
+          gte: (latKey ?? payload.latitude) - 0.001,
+          lte: (latKey ?? payload.latitude) + 0.001,
+        },
+        longitude: {
+          gte: (lonKey ?? payload.longitude) - 0.001,
+          lte: (lonKey ?? payload.longitude) + 0.001,
+        },
+      },
+    });
+  }
+
+  if (!existing) {
+    const created = await prisma.location.create({ data: payload });
+    return { action: "create", id: created.id };
+  } else {
+    const toUpdate = cleanUndefined(
+      mergePreferExisting(existing, payload)
+    ) as Prisma.LocationUncheckedCreateInput;
+    delete (toUpdate as any).id;
+
+    const updated = await prisma.location.update({
+      where: { id: existing.id },
+      data: toUpdate,
+    });
+    return { action: "update", id: updated.id };
+  }
+}
+
+async function main() {
+  const fileArg = process.argv[2] || path.join(__dirname, "metadata_clean.jsonl");
+  const inputPath = path.resolve(process.cwd(), fileArg);
+
+  if (!fs.existsSync(inputPath)) {
+    console.error(`Input file not found: ${inputPath}`);
+    process.exit(1);
+  }
+
+  console.log(`Seeding from: ${inputPath}`);
+  const rl = readline.createInterface({
+    input: fs.createReadStream(inputPath, { encoding: "utf-8" }),
+    crlfDelay: Infinity,
+  });
+
+  let read = 0,
+    created = 0,
+    updated = 0,
+    skipped = 0,
+    errors = 0;
+
+  for await (const raw of rl) {
+    const line = raw.trim();
+    if (!line) continue;
+    read++;
+    try {
+      const rec: InputLoc = JSON.parse(line);
+
+      if (
+        !rec.name ||
+        typeof rec.latitude !== "number" ||
+        typeof rec.longitude !== "number"
+      ) {
+        skipped++;
+        continue;
+      }
+
+      const result = await upsertLocation(rec);
+      if (result.action === "create") created++;
+      else updated++;
+    } catch (e: any) {
+      errors++;
+      console.error(`[line ${read}] ERROR:`, e?.message || e);
+    }
+  }
+
+  console.log("\n===== Seed Summary =====");
+  console.log(`Read lines:   ${read}`);
+  console.log(`Created:      ${created}`);
+  console.log(`Updated:      ${updated}`);
+  console.log(`Skipped:      ${skipped}`);
+  console.log(`Errors:       ${errors}`);
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("Fatal:", e);
     process.exit(1);
   })
   .finally(async () => {
