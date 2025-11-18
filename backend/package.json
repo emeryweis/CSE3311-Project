@@ -49,8 +49,7 @@
     "axios": "^1.6.2",
     "express-validator": "^7.0.1",
     "morgan": "^1.10.0",
-    "tsconfig-paths": "^4.2.0",
-    "bcrypt": "^2.4.3"
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
