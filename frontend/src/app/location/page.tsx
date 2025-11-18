@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -10,6 +9,7 @@ import Footer from '@/app/components/Footer';
 import PageShell from '@/app/components/PageShell';
 import WeatherForecast from '@/app/components/WeatherForecast';
 import GalleryLightbox from '@/app/components/GalleryLightbox';
+import { useAuth } from '@/app/context/AuthContext';
 
 // Lazy-load MapComponent to avoid SSR issues
 const MapComponent = dynamic(() => import('@/app/components/MapComponent'), { ssr: false });
@@ -17,12 +17,22 @@ const MapComponent = dynamic(() => import('@/app/components/MapComponent'), { ss
 // ---------------- Types (mirror Prisma / API) ----------------
 type Json = any;
 
+type ReviewUser = {
+  id?: string;
+  username?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+};
+
 type Review = {
   id?: string;
-  author?: string;
+  author?: string | null;
   rating?: number | string | null; // <-- allow string too
   comment?: string | null;
+  content?: string | null;
   createdAt?: string | Date;
+  userId?: string | null;
+  user?: ReviewUser | null;
 };
 
 type LocationDetail = {
@@ -59,6 +69,33 @@ type LocationDetail = {
   rating?: number | string | null;      // <-- allow string too
   createdById?: string | null;
   reviews?: Review[] | null;            // may or may not be included by your route
+};
+
+const getReviewAuthorName = (review: Review): string => {
+  if (review.author && review.author.trim().length > 0) {
+    return review.author;
+  }
+
+  if (review.user) {
+    const parts = [review.user.firstName, review.user.lastName].filter((p) => (p ?? '').trim().length > 0);
+    if (parts.length > 0) {
+      return parts.join(' ');
+    }
+    if (review.user.username) {
+      return review.user.username;
+    }
+  }
+
+  return 'Anonymous';
+};
+
+const getReviewBody = (review: Review): string => review.comment ?? review.content ?? '';
+
+const parseReviewRating = (value: Review['rating']): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (!Number.isFinite(num)) return null;
+  return Math.max(0, Math.min(5, num));
 };
 
 // ---------------- Utils ----------------
@@ -196,7 +233,7 @@ async function fetchWithTimeout(url: string, opts: RequestInit = {}, ms = 8000) 
 const averageRating = (reviews?: Review[] | null): number | null => {
   if (!reviews || reviews.length === 0) return null;
   const nums = reviews
-    .map((r) => (typeof r?.rating === 'string' ? parseFloat(r.rating as any) : r?.rating))
+    .map((r) => parseReviewRating(r.rating))
     .filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
   if (nums.length === 0) return null;
   const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
@@ -210,16 +247,29 @@ export default function LocationPage() {
 
   const [data, setData] = useState<LocationDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendBase = useMemo(() => (API_URL || '').replace(/\/$/, ''), [API_URL]);
+  const { isAuthenticated, user, token, loading: authLoading } = useAuth();
 
-  const buildEndpoint = (locId: string) => {
-    const base = (API_URL || '').replace(/\/$/, '');
-    return `${base}/api/locations/id/${encodeURIComponent(locId)}`;
-  };
+  const [reviewDropdownOpen, setReviewDropdownOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewHoverRating, setReviewHoverRating] = useState<number | null>(null);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
+
+  const userReview = useMemo(() => {
+    if (!user?.id || !data?.reviews) {
+      return null;
+    }
+    return data.reviews.find((review) => review.userId === user.id) ?? null;
+  }, [data?.reviews, user?.id]);
+  const userReviewText = userReview ? getReviewBody(userReview) : '';
 
   useEffect(() => {
     const run = async () => {
@@ -235,8 +285,9 @@ export default function LocationPage() {
       }
 
       try {
+        const endpoint = `${backendBase}/api/locations/id/${encodeURIComponent(id)}`;
         const res = await fetchWithTimeout(
-          buildEndpoint(id),
+          endpoint,
           { headers: { 'Content-Type': 'application/json' } },
           8000
         );
@@ -258,7 +309,80 @@ export default function LocationPage() {
       }
     };
     run();
-  }, [API_URL, id]);
+  }, [API_URL, backendBase, id]);
+
+  const toggleReviewDropdown = () => {
+    setReviewDropdownOpen((prev) => !prev);
+    setReviewError(null);
+    setReviewHoverRating(null);
+  };
+
+  const handleReviewSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isAuthenticated || !token) {
+      setReviewError('Please log in to leave a review.');
+      return;
+    }
+    if (!data?.id) {
+      setReviewError('Location details are still loading.');
+      return;
+    }
+    if (!API_URL || API_URL === 'undefined') {
+      setReviewError('Backend URL not configured.');
+      return;
+    }
+    if (reviewRating < 1 || reviewRating > 5) {
+      setReviewError('Please choose a rating between 1 and 5 stars.');
+      return;
+    }
+    if (!reviewText.trim()) {
+      setReviewError('Please share a few details about your experience.');
+      return;
+    }
+
+    setReviewSubmitting(true);
+    setReviewError(null);
+    setReviewSuccess(null);
+
+    try {
+      const res = await fetch(`${backendBase}/api/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          locationId: data.id,
+          rating: reviewRating,
+          content: reviewText.trim(),
+        }),
+      });
+
+      const payload = await res.json();
+      if (!res.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Unable to submit review right now.');
+      }
+
+      const createdReview = payload.data as Review;
+      setData((prev) => {
+        if (!prev) return prev;
+        const existingReviews = Array.isArray(prev.reviews) ? prev.reviews : [];
+        return {
+          ...prev,
+          reviews: [createdReview, ...existingReviews],
+        };
+      });
+
+      setReviewSuccess('Thank you for sharing your review!');
+      setReviewText('');
+      setReviewRating(0);
+      setReviewDropdownOpen(false);
+    } catch (submitError: any) {
+      setReviewError(submitError?.message || 'Unable to submit review right now.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   // Background image = first of images (if any), Gallery = rest
   const allImages = normalizeImagesFromJson(data?.images ?? null);
@@ -272,6 +396,7 @@ export default function LocationPage() {
     (Number.isFinite(parsedDbRating as number) ? (parsedDbRating as number) : null) ??
     averageRating(data?.reviews);
   const displayRating = fmtNumber(displayRatingRaw, { digits: 1 });
+  const reviewPanelId = data?.id ? `review-panel-${data.id}` : 'review-panel';
 
   return (
     <main className="text-neutral-100">
@@ -484,24 +609,150 @@ export default function LocationPage() {
               <h3 className="font-semibold mb-3">Reviews</h3>
               {data?.reviews && data.reviews.length > 0 ? (
                 <ul className="space-y-3">
-                  {data.reviews.map((r, i) => (
-                    <li key={r.id ?? i} className="rounded-xl border border-neutral-800 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium">{r.author || 'Anonymous'}</div>
-                        <div className="text-sm text-neutral-400">{r.rating ?? '—'}</div>
-                      </div>
-                      {r.comment && <p className="mt-2 text-neutral-300">{r.comment}</p>}
-                      {r.createdAt && (
-                        <div className="mt-1 text-xs text-neutral-500">
-                          {new Date(r.createdAt).toLocaleDateString()}
+                  {data.reviews.map((r, i) => {
+                    const reviewText = getReviewBody(r);
+                    return (
+                      <li key={r.id ?? i} className="rounded-xl border border-neutral-800 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <div className="font-medium">{getReviewAuthorName(r)}</div>
+                            {r.createdAt && (
+                              <div className="text-xs text-neutral-500">
+                                {new Date(r.createdAt).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                          <StarRatingDisplay rating={parseReviewRating(r.rating)} />
                         </div>
-                      )}
-                    </li>
-                  ))}
+                        {reviewText ? (
+                          <p className="mt-2 text-neutral-300">{reviewText}</p>
+                        ) : (
+                          <p className="mt-2 text-sm text-neutral-500">No written review</p>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
-                <p className="text-neutral-500">—</p>
+                <p className="text-neutral-500">No reviews yet.</p>
               )}
+
+              <div className="mt-6 border-t border-neutral-800 pt-6">
+                {isAuthenticated ? (
+                  userReview ? (
+                    <div className="rounded-xl border border-emerald-800/40 bg-emerald-500/5 px-4 py-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">Your review</p>
+                          {userReview.createdAt && (
+                            <p className="text-xs text-neutral-400">
+                              Posted on {new Date(userReview.createdAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <StarRatingDisplay rating={parseReviewRating(userReview.rating)} />
+                      </div>
+                      {userReviewText && (
+                        <p className="mt-2 text-sm text-neutral-200">{userReviewText}</p>
+                      )}
+                      <p className="mt-3 text-sm text-neutral-300">
+                        You can only leave one review per location. Thanks for sharing your experience!
+                      </p>
+                      {reviewSuccess && (
+                        <p className="mt-3 text-sm text-emerald-300">{reviewSuccess}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-neutral-800 bg-neutral-950/40">
+                      <button
+                        type="button"
+                        onClick={toggleReviewDropdown}
+                        aria-expanded={reviewDropdownOpen}
+                        aria-controls={reviewPanelId}
+                        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
+                      >
+                        <span>{reviewDropdownOpen ? 'Hide review form' : 'Share your experience'}</span>
+                        <span className={`transition-transform ${reviewDropdownOpen ? 'rotate-180' : ''}`}>
+                          ▾
+                        </span>
+                      </button>
+                      <div
+                        id={reviewPanelId}
+                        className={`transition-all duration-300 ease-out ${
+                          reviewDropdownOpen ? 'opacity-100' : 'opacity-0'
+                        }`}
+                        style={{ maxHeight: reviewDropdownOpen ? 600 : 0, overflow: 'hidden' }}
+                      >
+                        <div className="px-4 pb-5">
+                          <form className="space-y-4" onSubmit={handleReviewSubmit}>
+                            <div>
+                              <p className="text-sm text-neutral-400">Tap a star to rate this location.</p>
+                              <div className="mt-3 flex items-center gap-1 text-amber-400">
+                                {[1, 2, 3, 4, 5].map((star) => {
+                                  const isFilled = (reviewHoverRating ?? reviewRating) >= star;
+                                  return (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className="p-1 transition-transform hover:scale-105 focus:outline-none"
+                                      onMouseEnter={() => setReviewHoverRating(star)}
+                                      onMouseLeave={() => setReviewHoverRating(null)}
+                                      onClick={() => setReviewRating(star)}
+                                      aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                                    >
+                                      <StarIcon filled={isFilled} className="h-6 w-6" />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div>
+                              <label htmlFor="review-text" className="text-sm text-neutral-200">
+                                Your review
+                              </label>
+                              <textarea
+                                id="review-text"
+                                className="mt-2 w-full rounded-xl border border-neutral-800 bg-neutral-950/70 p-3 text-sm text-neutral-100 focus:border-emerald-500 focus:outline-none"
+                                rows={4}
+                                value={reviewText}
+                                onChange={(event) => setReviewText(event.target.value)}
+                                placeholder="What did you love about this spot?"
+                              />
+                            </div>
+                            {reviewError && <p className="text-sm text-red-400">{reviewError}</p>}
+                            <div className="flex justify-end gap-3">
+                              <button
+                                type="button"
+                                className="rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-800"
+                                onClick={() => {
+                                  setReviewDropdownOpen(false);
+                                  setReviewHoverRating(null);
+                                  setReviewError(null);
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={reviewSubmitting}
+                                className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+                              >
+                                {reviewSubmitting ? 'Submitting…' : 'Submit review'}
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  !authLoading && (
+                    <div className="rounded-xl border border-dashed border-neutral-700 bg-neutral-950/40 px-4 py-5 text-sm text-neutral-300">
+                      Sign in to leave a review.
+                    </div>
+                  )
+                )}
+              </div>
             </div>
           </section>
 
@@ -533,5 +784,40 @@ function Info({ label, value }: { label: string; value: string }) {
       <div className="text-xs uppercase tracking-wide text-neutral-400">{label}</div>
       <div className="mt-1 text-sm">{value}</div>
     </div>
+  );
+}
+
+function StarRatingDisplay({ rating }: { rating?: number | null }) {
+  const numericRating = typeof rating === 'number' && Number.isFinite(rating) ? rating : null;
+  const safeRating = numericRating ?? 0;
+  const label =
+    numericRating !== null ? `${fmtNumber(safeRating, { digits: 1 })} out of 5 stars` : 'No rating yet';
+
+  return (
+    <div className="flex items-center gap-1 text-amber-400" aria-label={label}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <StarIcon key={star} filled={safeRating >= star} className="h-5 w-5" />
+      ))}
+      <span className="ml-2 text-xs text-neutral-400">
+        {numericRating !== null ? fmtNumber(safeRating, { digits: 1 }) : '—'}
+      </span>
+    </div>
+  );
+}
+
+function StarIcon({ filled, className }: { filled: boolean; className?: string }) {
+  const colorClass = filled ? 'text-amber-400' : 'text-neutral-600';
+  const sizeClass = className ?? 'h-5 w-5';
+  return (
+    <svg
+      className={`${colorClass} ${sizeClass}`.trim()}
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth={filled ? 0 : 1.5}
+      aria-hidden="true"
+    >
+      <path d="M12 17.27L18.18 21 16.54 13.97 22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z" />
+    </svg>
   );
 }
