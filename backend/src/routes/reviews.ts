@@ -6,12 +6,32 @@ const prisma = new PrismaClient();
 const router = Router();
 
 // Public routes
-router.get('/', optionalAuth, async (_req, res, next) => {
+router.get('/', optionalAuth, async (req, res, next) => {
   try {
+    const locationId = req.query['locationId'] as string | undefined;
+    
+    const where = locationId ? { locationId } : {};
+    
     const reviews = await prisma.review.findMany({
+      where,
       include: {
-        user: true,
-        location: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
     res.json({ success: true, data: reviews });

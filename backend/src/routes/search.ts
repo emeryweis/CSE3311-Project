@@ -36,18 +36,57 @@ router.get('/locations', optionalAuth, async (req, res, next) => {
         skip,
         take: limit,
         orderBy: { rating: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          costPerNight: true,
+          rating: true,
+          images: true,
+          city: true,
+          state: true,
+        },
       }),
       prisma.location.count({ where }),
     ]);
 
-    res.json({
+    // Format results to match frontend expectations
+    const formatted = results.map((loc) => {
+      const imageArray = Array.isArray(loc.images) ? (loc.images as string[]) : [];
+      const firstImage = imageArray[0];
+
+      return {
+        id: loc.id,
+        name: loc.name,
+        blurb: loc.description || 'No description available.',
+        price: loc.costPerNight ? `$${loc.costPerNight}/night` : '—',
+        rating: loc.rating?.toFixed(1) || '—',
+        img: firstImage || 'https://via.placeholder.com/600x400?text=No+Image',
+        location: [loc.city, loc.state].filter(Boolean).join(', ') || '',
+      };
+    });
+
+    return res.json({
       success: true,
-      data: results,
+      data: formatted,
       total,
       totalPages: Math.ceil(total / limit),
     });
-  } catch (error) {
+  } catch (error: any) {
+    // Handle database connection errors gracefully
+    if (error.code === 'P1001' || error.message?.includes('Can\'t reach database server')) {
+      console.error('Database connection error:', error.message);
+      // Return empty results instead of 500 error
+      return res.json({
+        success: true,
+        data: [],
+        total: 0,
+        totalPages: 0,
+      });
+    }
+    // For other errors, use the error handler
     next(error);
+    return;
   }
 });
 

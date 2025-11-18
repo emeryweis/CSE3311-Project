@@ -4,6 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
+import NavBar from '@/app/components/NavBar';
+import Footer from '@/app/components/Footer';
+import PageShell from '@/app/components/PageShell';
+import Backplate from '@/app/components/Backplate';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -97,42 +101,8 @@ export default function RegisterPage() {
         throw new Error('Unexpected response from the server.');
       }
 
-      let autoLoginSucceeded = false;
-
-      try {
-        const loginResponse = await fetch(`${BASE_URL}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: formData.email, password: formData.password }),
-        });
-
-        const loginContentType = loginResponse.headers.get('content-type');
-        const loginIsJson = loginContentType && loginContentType.includes('application/json');
-        const loginData = loginIsJson ? await loginResponse.json() : null;
-
-        if (
-          loginResponse.ok &&
-          loginData?.success &&
-          loginData?.data?.user &&
-          loginData?.data?.token
-        ) {
-          await login({ user: loginData.data.user, token: loginData.data.token });
-          autoLoginSucceeded = true;
-          router.push('/');
-          router.refresh();
-        }
-      } catch (autoLoginError) {
-        console.warn('Auto-login after registration failed:', autoLoginError);
-      }
-
-      if (!autoLoginSucceeded) {
-        setSuccessMessage('Registration successful! You can now sign in with your new credentials.');
-        setFormData((prev) => ({
-          ...prev,
-          password: '',
-          confirmPassword: '',
-        }));
-      }
+      // Redirect to verification page with email
+      router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (error) {
       console.error('Registration error:', error);
       const message = error instanceof Error ? error.message : 'Registration failed. Please try again.';
@@ -143,214 +113,231 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <Link href="/" className="flex items-center justify-center space-x-3 mb-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-blue-600 rounded flex items-center justify-center">
-                <span className="text-white font-bold text-xl">A</span>
-              </div>
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+    <main className="min-h-screen text-white">
+      <NavBar />
+
+      <PageShell
+        imageSrc="/search_screen.jpg"
+        fadeHeight="40vh"
+        withFixedHeaderOffset
+      >
+        <div className="flex flex-col gap-16">
+          {/* HERO */}
+          <section className="pt-20 sm:pt-28 md:pt-32">
+            <div className="mx-auto w-full max-w-2xl px-4">
+              <Backplate className="text-center">
+                <h1 className="text-3xl md:text-4xl font-bold">Create Your Account</h1>
+                <p className="mt-4 text-neutral-300">
+                  Join the UTA outdoor community with your @mavs.uta.edu email
+                </p>
+                <p className="mt-2 text-sm text-neutral-400">
+                  Already have an account?{' '}
+                  <Link href="/auth/login" className="text-emerald-400 hover:text-emerald-300 font-medium">
+                    Sign in here
+                  </Link>
+                </p>
+              </Backplate>
             </div>
-            <span className="text-3xl font-bold text-blue-600">OutdoorSpot</span>
-          </Link>
-          <h2 className="text-3xl font-bold text-gray-900">Create UTA Student Account</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Join the UTA outdoor community with your @mavs.uta.edu email
-          </p>
-          <p className="mt-1 text-sm text-gray-600">
-            Already have an account?{' '}
-            <Link href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
-            </Link>
-          </p>
+          </section>
+
+          {/* REGISTRATION FORM */}
+          <section className="px-4 pb-20">
+            <div className="mx-auto max-w-2xl">
+              <div className="rounded-2xl border border-neutral-800 bg-neutral-900/80 backdrop-blur p-6 md:p-8">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* First Name */}
+                      <div>
+                        <label htmlFor="firstName" className="block text-sm font-medium mb-2">
+                          First name <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          id="firstName"
+                          name="firstName"
+                          type="text"
+                          autoComplete="given-name"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-2 bg-neutral-800 border ${
+                            errors.firstName ? 'border-red-600' : 'border-neutral-700'
+                          } rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+                          placeholder="First name"
+                        />
+                        {errors.firstName && <p className="mt-1 text-sm text-red-400">{errors.firstName}</p>}
+                      </div>
+
+                      {/* Last Name */}
+                      <div>
+                        <label htmlFor="lastName" className="block text-sm font-medium mb-2">
+                          Last name <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          id="lastName"
+                          name="lastName"
+                          type="text"
+                          autoComplete="family-name"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-2 bg-neutral-800 border ${
+                            errors.lastName ? 'border-red-600' : 'border-neutral-700'
+                          } rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+                          placeholder="Last name"
+                        />
+                        {errors.lastName && <p className="mt-1 text-sm text-red-400">{errors.lastName}</p>}
+                      </div>
+                    </div>
+
+                    {/* Username */}
+                    <div>
+                      <label htmlFor="username" className="block text-sm font-medium mb-2">
+                        Username <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        autoComplete="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 bg-neutral-800 border ${
+                          errors.username ? 'border-red-600' : 'border-neutral-700'
+                        } rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+                        placeholder="Choose a username"
+                      />
+                      {errors.username && <p className="mt-1 text-sm text-red-400">{errors.username}</p>}
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium mb-2">
+                        UTA Email Address <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 bg-neutral-800 border ${
+                          errors.email ? 'border-red-600' : 'border-neutral-700'
+                        } rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+                        placeholder="yourname@mavs.uta.edu"
+                      />
+                      {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-medium mb-2">
+                        Password <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 bg-neutral-800 border ${
+                          errors.password ? 'border-red-600' : 'border-neutral-700'
+                        } rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+                        placeholder="Create a password (min. 6 characters)"
+                      />
+                      {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password}</p>}
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
+                        Confirm password <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 bg-neutral-800 border ${
+                          errors.confirmPassword ? 'border-red-600' : 'border-neutral-700'
+                        } rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500`}
+                        placeholder="Confirm your password"
+                      />
+                      {errors.confirmPassword && (
+                        <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Terms */}
+                  <div className="flex items-center">
+                    <input
+                      id="terms"
+                      name="terms"
+                      type="checkbox"
+                      required
+                      className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-neutral-600 rounded bg-neutral-800"
+                    />
+                    <label htmlFor="terms" className="ml-2 block text-sm text-neutral-300">
+                      I agree to the{' '}
+                      <a href="#" className="text-emerald-400 hover:text-emerald-300">
+                        Terms of Service
+                      </a>{' '}
+                      and{' '}
+                      <a href="#" className="text-emerald-400 hover:text-emerald-300">
+                        Privacy Policy
+                      </a>
+                    </label>
+                  </div>
+
+                  {/* Error Message */}
+                  {serverError && (
+                    <div className="rounded-lg bg-red-900/30 border border-red-700 p-4 text-red-300">
+                      {serverError}
+                    </div>
+                  )}
+
+                  {/* Success Message */}
+                  {successMessage && (
+                    <div className="rounded-lg bg-emerald-900/30 border border-emerald-700 p-4 text-emerald-300">
+                      {successMessage}
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 py-3 px-6 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                    >
+                      {submitButtonText}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.back()}
+                      className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white font-semibold rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  {/* Info Box */}
+                  <div className="mt-6 p-4 bg-emerald-900/20 border border-emerald-700/30 rounded-lg">
+                    <p className="text-sm text-emerald-300 text-center">
+                      Exclusively for University of Texas at Arlington students. Connect with fellow Mavericks who love the outdoors!
+                    </p>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <Footer />
         </div>
-
-        {/* Registration Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="bg-white p-8 rounded-xl shadow-lg">
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* First Name */}
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                    First name
-                  </label>
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    autoComplete="given-name"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                      errors.firstName ? 'border-red-300' : 'border-gray-300'
-                    } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                    placeholder="First name"
-                  />
-                  {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
-                </div>
-
-                {/* Last Name */}
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                    Last name
-                  </label>
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    autoComplete="family-name"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                      errors.lastName ? 'border-red-300' : 'border-gray-300'
-                    } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                    placeholder="Last name"
-                  />
-                  {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
-                </div>
-              </div>
-
-              {/* Username */}
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                  Username
-                </label>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                    errors.username ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                  placeholder="Choose a username"
-                />
-                {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
-              </div>
-
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  UTA Email Address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                  placeholder="yourname@mavs.uta.edu"
-                />
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-              </div>
-
-              {/* Password */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                  placeholder="Create a password"
-                />
-                {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm password
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                  placeholder="Confirm your password"
-                />
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Terms */}
-            <div className="flex items-center mt-4">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                required
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                I agree to the{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-500">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-500">
-                  Privacy Policy
-                </a>
-              </label>
-            </div>
-
-            {serverError && (
-              <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4" role="alert" aria-live="assertive">
-                <p className="text-sm text-red-700">{serverError}</p>
-              </div>
-            )}
-
-            {successMessage && (
-              <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4" role="status" aria-live="polite">
-                <p className="text-sm text-emerald-700">{successMessage}</p>
-              </div>
-            )}
-
-            {/* Submit */}
-            <div className="mt-6">
-              <button
-                type="submit"
-                disabled={loading}
-                className={`group relative flex w-full justify-center rounded-lg border border-transparent py-2 px-4 text-sm font-medium text-white transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  loading ? 'cursor-not-allowed bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                {submitButtonText}
-              </button>
-            </div>
-
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800 text-center">
-                🏛️ Exclusively for University of Texas at Arlington students. Connect with fellow Mavericks who love the outdoors!
-              </p>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+      </PageShell>
+    </main>
   );
 }

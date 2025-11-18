@@ -16,7 +16,8 @@
     "db:generate": "prisma generate",
     "db:seed": "ts-node prisma/seed.ts",
     "db:reset": "prisma migrate reset",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:clear-placeholders": "ts-node -r tsconfig-paths/register scripts/clear-placeholder-images.ts"
   },
   "keywords": [
     "camping",

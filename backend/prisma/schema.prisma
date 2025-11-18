@@ -8,18 +8,21 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  username     String     @unique
-  passwordHash String
-  firstName    String?
-  lastName     String?
-  avatarUrl    String?
-  bio          String?
-  isAdmin      Boolean    @default(false)
-  createdAt    DateTime   @default(now())
-  reviews      Review[]
-  locations    Location[]
+  id                    String     @id @default(cuid())
+  email                 String     @unique
+  username              String     @unique
+  passwordHash          String
+  firstName             String?
+  lastName              String?
+  avatarUrl             String?
+  bio                   String?
+  emailVerified         Boolean    @default(false)
+  verificationCode      String?
+  verificationCodeExpiry DateTime?
+  createdAt             DateTime   @default(now())
+  reviews               Review[]
+  locations             Location[]
+  feedback              Feedback[]
 
   @@map("users")
 }
@@ -74,4 +77,20 @@ model Review {
   locationId String
   location   Location @relation(fields: [locationId], references: [id])
   user       User     @relation(fields: [userId], references: [id])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5 stars for website experience
+  category  String?  // e.g., "bug", "feature", "improvement", "general"
+  subject   String?  // Short subject line
+  message   String   // Feedback content
+  email     String?  // Optional email for follow-up
+  userId    String?  // Optional - if user is logged in
+  user      User?    @relation(fields: [userId], references: [id])
+  status    String   @default("new") // "new", "read", "resolved", "archived"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("feedback")
 }
