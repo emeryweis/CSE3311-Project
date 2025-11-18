@@ -42,14 +42,49 @@ router.post('/', authenticate, async (req: any, res, next) => {
   try {
     const { content, rating, locationId } = req.body;
 
+    const sanitizedContent = typeof content === 'string' ? content.trim() : '';
+    if (!locationId || typeof locationId !== 'string') {
+      res.status(400).json({ success: false, message: 'A valid locationId is required.' });
+      return;
+    }
+    if (!sanitizedContent) {
+      res.status(400).json({ success: false, message: 'Review content cannot be empty.' });
+      return;
+    }
+
+    const parsedRating = Number(rating);
+    if (!Number.isFinite(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+      res.status(400).json({ success: false, message: 'Rating must be between 1 and 5 stars.' });
+      return;
+    }
+
+    const existingReview = await prisma.review.findFirst({
+      where: { userId: req.user.id, locationId },
+    });
+
+    if (existingReview) {
+      res.status(409).json({ success: false, message: 'You have already reviewed this location.' });
+      return;
+    }
+
     const newReview = await prisma.review.create({
       data: {
-        content,
-        rating,
+        content: sanitizedContent,
+        rating: Math.round(parsedRating),
         user: { connect: { id: req.user.id } },
-        ...(locationId ? { location: { connect: { id: locationId } } } : {}),
+        location: { connect: { id: locationId } },
       },
-      include: { user: true, location: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        location: true,
+      },
     });
 
     res.status(201).json({ success: true, data: newReview });
