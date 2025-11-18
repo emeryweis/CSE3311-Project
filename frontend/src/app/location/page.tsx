@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -95,6 +96,62 @@ const fmtDate = (d?: string | Date | null) => {
   const dt = typeof d === 'string' ? new Date(d) : d;
   if (isNaN(dt.getTime())) return '—';
   return dt.toLocaleDateString();
+};
+
+const humanizeJsonKey = (key: string) =>
+  key
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/(^|\s)\w/g, (s) => s.toUpperCase());
+
+const renderStructuredJson = (value: Json): ReactNode => {
+  if (value === null || value === undefined || value === '') {
+    return <span className="text-neutral-500">—</span>;
+  }
+
+  if (value instanceof Date) {
+    return <span className="text-neutral-300">{value.toLocaleString()}</span>;
+  }
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return <span className="text-neutral-300">{String(value)}</span>;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <span className="text-neutral-500">—</span>;
+    }
+    return (
+      <ul className="list-disc list-inside space-y-1 text-neutral-300">
+        {value.map((item, idx) => (
+          <li key={idx}>{renderStructuredJson(item)}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, Json>).filter(([, v]) => v !== undefined);
+    if (entries.length === 0) {
+      return <span className="text-neutral-500">—</span>;
+    }
+    return (
+      <dl className="space-y-3">
+        {entries.map(([key, val]) => (
+          <div key={key} className="space-y-1">
+            <dt className="text-xs uppercase tracking-wide text-neutral-500">
+              {humanizeJsonKey(key)}
+            </dt>
+            <dd className="text-sm text-neutral-300">{renderStructuredJson(val)}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
+  return <span className="text-neutral-300">{String(value)}</span>;
 };
 
 // Normalize images from arbitrary JSON shapes
@@ -382,13 +439,7 @@ export default function LocationPage() {
               {isPresent(data?.contactInfo) && (
                 <div className="p-6">
                   <h3 className="font-semibold mb-2">Contact Info</h3>
-                  {typeof data?.contactInfo === 'object' ? (
-                    <pre className="text-neutral-300 overflow-auto text-sm">
-                      {JSON.stringify(data?.contactInfo, null, 2)}
-                    </pre>
-                  ) : (
-                    <span className="text-neutral-300">{String(data?.contactInfo)}</span>
-                  )}
+                  <div className="text-sm">{renderStructuredJson(data?.contactInfo)}</div>
                 </div>
               )}
             </div>
