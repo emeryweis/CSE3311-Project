@@ -80,6 +80,25 @@ export default function AccountPage() {
                           Explore locations
                         </Link>
                       </div>
+                      {user.admin && (
+                        <div className="rounded-2xl border border-emerald-400/30 bg-emerald-950/40 p-5">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-sm uppercase tracking-wide text-emerald-300/80">Admin tools</p>
+                              <h3 className="text-lg font-semibold text-white">Admin dashboard</h3>
+                              <p className="mt-1 text-sm text-emerald-100/80">
+                                Review submissions, moderate content, and manage OutdoorSpot data.
+                              </p>
+                            </div>
+                            <Link
+                              href="/admin/dashboard"
+                              className="inline-flex items-center justify-center rounded-xl border border-emerald-300/60 px-4 py-2 text-sm font-semibold text-emerald-50 transition hover:border-emerald-200 hover:bg-emerald-400/10"
+                            >
+                              Go to admin dashboard
+                            </Link>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-6 text-center sm:text-left">
