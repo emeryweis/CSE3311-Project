@@ -12,10 +12,19 @@ import Backplate from '@/app/components/Backplate';
 type Location = {
   id: string;
   name: string;
-  blurb?: string;
-  price?: string;
-  rating?: number;
-  img?: string;
+  description: string;
+  price: string;
+  rating: string;
+  img: string;
+};
+
+type RawLocation = {
+  id: string;
+  name: string;
+  description?: string | null;
+  costPerNight?: number | string | null;
+  rating?: number | string | null;
+  images?: string[] | string | null;
 };
 
 export default function SearchPage() {
@@ -47,7 +56,29 @@ export default function SearchPage() {
       );
       const data = await res.json();
       if (data.success) {
-        setResults(data.data || []);
+        const normalized: Location[] = (data.data || []).map((loc: RawLocation) => {
+          const rawImages = loc.images;
+          const imageArray = Array.isArray(rawImages)
+            ? rawImages
+            : typeof rawImages === 'string'
+              ? [rawImages]
+              : [];
+          const firstImage = imageArray[0];
+
+          return {
+            id: loc.id,
+            name: loc.name,
+            description: loc.description || 'No description available.',
+            price: loc.costPerNight ? `$${loc.costPerNight}/night` : '—',
+            rating:
+              typeof loc.rating === 'number'
+                ? loc.rating.toFixed(1)
+                : loc.rating || '—',
+            img: firstImage || 'https://via.placeholder.com/150?text=No+Image',
+          };
+        });
+
+        setResults(normalized);
         setTotalPages(data.totalPages || 1);
         setPage(p);
       } else {
@@ -128,7 +159,7 @@ export default function SearchPage() {
                       aria-label={`View details for ${loc.name}`}
                     />
 
-                    <div className="h-24 w-36 flex-shrink-0 relative overflow-hidden">
+                    <div className="h-16 w-16 flex-shrink-0 relative overflow-hidden">
                       <img
                         src={loc.img || 'https://via.placeholder.com/150'}
                         alt={loc.name}
@@ -141,12 +172,12 @@ export default function SearchPage() {
 
                     <div className="ml-4 mr-4 my-3 flex-1">
                       <h2 className="text-lg font-semibold">{loc.name}</h2>
-                      <p className="text-sm text-gray-300 line-clamp-2">
-                        {loc.blurb || 'No description available.'}
+                      <p className="text-sm text-gray-300 truncate">
+                        {loc.description}
                       </p>
                       <div className="flex items-center mt-2 space-x-4 text-sm text-gray-400">
-                        <span>⭐ {loc.rating ?? '—'}</span>
-                        <span className="text-emerald-400">{loc.price || '—'}</span>
+                        <span>⭐ {loc.rating}</span>
+                        <span className="text-emerald-400">{loc.price}</span>
                       </div>
                     </div>
                   </article>
